@@ -1,0 +1,40 @@
+#install.packages("tidyverse")
+library(tidyverse)
+library(caret)
+library(dplyr)
+library(ggplot2)
+library(corrplot)
+
+setwd("C:/Users/plockett/Documents/Personal/GMU Folder/OR 568/Project")
+
+RRW <- read.csv('winequality-red.csv')
+
+ggplot(RRW, aes(x=fixed.acidity))+
+    geom_histogram(aes(y=..density..),
+                    binwidth=1,
+                   colour="black", fill="white") +
+    geom_density(alpha=.2, fill="#FF6666") 
+    
+    #Skewness Density Graphs
+    RRW %>% 
+  keep(is.numeric) %>% 
+  gather() %>% 
+  ggplot(aes(value))+
+    facet_wrap(~ key, scales = "free") +
+    geom_histogram(aes(y=..density..),
+                  colour="black", fill="white") +
+    geom_density(alpha=.2, fill="#FF6666") 
+    
+    RRW %>%
+  keep(is.numeric) %>%                     
+  gather() %>%                            
+  ggplot(aes(value)) +                     
+    facet_wrap(~ key, scales = "free") +   
+    geom_density()  
+   
+   
+  #PreProcessing Part 
+    PPD <- preProcess(RRW,
+                  method = c("BoxCox", "center","scale","pca"))
+
+PPD
