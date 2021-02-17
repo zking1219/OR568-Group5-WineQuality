@@ -1,0 +1,94 @@
+---
+title: "wine_project"
+author: "Ajay Kurian"
+date: "1/26/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Importing libraries 
+library(caret)
+library(dplyr)
+library(ggplot2)
+library(corrplot)
+library(AppliedPredictiveModeling)
+library(caret)
+library(pls)
+library(e1071)
+library(MASS)
+
+```
+
+
+```{r}
+# Setting initial working directory
+setwd("C:/Users/ajkur/OneDrive/OR568/Project")
+
+dt=read.csv('winequality-red.csv')
+head(dt)
+
+```
+
+```{r}
+# Pre-processing of wine dataset 
+
+# Corrplot of wine data 
+corr=cor(dt)
+corrplot(corr)
+
+```
+
+```{r}
+# Plotting density plots (indicates distributions) 
+
+par(mfrow=c(3,2))
+c=colnames(dt)
+
+for (i in 1:(ncol(dt))){
+  
+  p2<-density(dt[,i])
+  plot(p2,type='n',main=paste('Density Plot:',toString(c[i])))
+  polygon(p2,col='red',border='grey')
+  
+}
+```
+
+```{r}
+# Running Box Cox Transformation 
+pe_lamba=preProcess(dt,method='BoxCox')
+pe_trans <- predict(pe_lamba, dt)
+apply(pe_trans,2,skewness)
+
+
+par(mfrow=c(3,2))
+c=colnames(pe_trans)
+
+for (i in 1:(ncol(pe_trans))){
+  
+  p2<-density(pe_trans[,i])
+  plot(p2,type='n',main=paste('Density Plot:',toString(c[i])))
+  polygon(p2,col='red',border='grey')
+  
+}
+
+```
+```{r}
+segPCA <- prcomp(pe_trans, center = TRUE, scale. = TRUE)
+
+## Plot a scatterplot matrix of the first three components
+transparentTheme(pchSize = .8, trans = .3)
+
+panelRange <- extendrange(segPCA$x[, 1:4])
+splom(as.data.frame(segPCA$x[, 1:4]), as.table = TRUE, auto.key = list(columns = 2), prepanel.limits = function(x) panelRange)
+
+splom(as.data.frame(segPCA$x[, 5:8]), as.table = TRUE, auto.key = list(columns = 2), prepanel.limits = function(x) panelRange)
+
+splom(as.data.frame(segPCA$x[, 9:12]), as.table = TRUE, auto.key = list(columns = 2), prepanel.limits = function(x) panelRange)
+
+```
+
+
