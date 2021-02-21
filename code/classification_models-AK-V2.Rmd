@@ -1,0 +1,234 @@
+---
+title: "wine_project"
+author: "Ajay Kurian"
+date: "1/26/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Importing libraries 
+library(caret)
+library(dplyr)
+library(ggplot2)
+library(corrplot)
+library(AppliedPredictiveModeling)
+library(caret)
+library(pls)
+library(e1071)
+library(glmnet)
+library(MASS)
+library(corrgram)
+
+# Setting initial working directory
+setwd("C:/Users/ajkur/OneDrive/OR568/Project")
+
+dt=read.csv('winequality-red.csv')
+head(dt)
+
+```
+
+```{r}
+# Histograms 
+#histogram(dt$quality, xlab='Wine Quality')
+table(dt$quality)
+
+hist <- ggplot(dt) +
+  geom_histogram(binwidth=1, fill='#69b3a2',color='#e9ecef', alpha=0.9,aes(x=quality)) +
+  ggtitle('Quality Count - Histogram') +
+  theme(axis.text.x=element_text(vjust = 0.5))
+
+print(hist)
+
+
+```
+
+```{r}
+# Corrplot 
+library(GGally)
+
+ggcorr(dt,palette='RdGy',label=TRUE,label_size=2.5,hjust=0.8, size=3, layout.exp = 1) +
+  labs(caption = 'Corrplot: Wine Dataset')
+
+#corr <- round(cor(dt,method='pearson'),3)
+#corrgram(corr,type='data',lower.panel=panel.conf)
+
+```
+
+From the corrplot we can see that there is a correlation between alcohol content and quality of 0.5
+
+```{r}
+# BoxPlots 
+
+dt$quality=as.factor(dt$quality)
+ggplot(aes(x=quality,y=alcohol,color=quality),data=dt)+geom_boxplot()
+
+# Fixed Acidity vs Density (Grouped by Quality)
+ggplot(aes(x=fixed.acidity,y=density,color=quality),data=dt)+
+  geom_boxplot()+
+  theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1))+
+  facet_grid(~quality)
+
+
+```
+
+
+```{r}
+# Plotting density plots (indicates distributions) - Removing Quality 
+
+par(mfrow=c(3,2))
+c=colnames(dt)
+
+for (i in 1:(ncol(dt[,c(-12)]))){
+  
+  p2<-density(dt[,i])
+  plot(p2,type='n',main=paste('Density Plot:',toString(c[i])))
+  polygon(p2,col='red',border='grey')
+  
+}
+
+```
+
+```{r}
+# Pre-processing (Center, Scale, Box-Cox)
+
+
+# Running Box Cox Transformation - While removing quality 
+pe_lamba=preProcess(dt[,c(-12)],method=c("center","scale",'BoxCox'))
+pe_trans <- predict(pe_lamba, dt[,c(-12)])
+apply(pe_trans,2,skewness)
+
+
+par(mfrow=c(3,2))
+c=colnames(pe_trans)
+
+for (i in 1:(ncol(pe_trans))){
+  
+  p2<-density(pe_trans[,i])
+  plot(p2,type='n',main=paste('Density Plot:',toString(c[i])))
+  polygon(p2,col='red',border='grey')
+  
+}
+
+```
+
+```{r}
+
+df=pe_trans
+qt=as.factor(dt$quality)
+
+# Splitting the dataset into a test and train (train: 70%, test: 30%)
+part=createDataPartition(qt,p=0.8,list=FALSE)
+qtTrain=qt[part]
+qtTest=qt[-part]
+
+dfTrain=df[part,]
+dfTest=df[-part,]
+
+```
+
+```{r}
+# Logistic Regression Analysis - Kappa 
+
+#ctrl <- trainControl(method = "LOOCV",classProbs = TRUE)
+
+ctrl <- trainControl(method = "cv",
+                      number = 10)
+
+
+
+set.seed(1)
+lrFit <- train(x = dfTrain, 
+                y = qtTrain,
+                method = "multinom",
+                preProcess = c('center','scale'),
+                trControl = ctrl)
+
+lrPred = predict(lrFit, newdata=dfTest)
+lrPred
+
+cm1 <-confusionMatrix(data=lrPred,reference=qtTest)
+cm1
+
+
+```
+
+
+```{r}
+# Linear Discriminant Analysis - Kappa 
+
+
+set.seed(1)
+ldaFit <- train(x = dfTrain, 
+                y = qtTrain,
+                method = "lda",
+                trControl = ctrl)
+
+ldaPred = predict(ldaFit, newdata=dfTest)
+
+
+cm2 <-confusionMatrix(data=ldaPred,reference=qtTest)
+cm2
+
+
+```
+
+```{r}
+# Partial Least Squares Discriminant Analysis 
+
+#install.packages("pls")
+library(pls)
+
+
+plsFit <- train(x = dfTrain, 
+                y = qtTrain,
+                method = "pls",
+                tuneGrid = expand.grid(ncomp = 1:10),
+                trControl = ctrl)
+plsFit
+confusionMatrix(data=plsFit,reference=ot)
+
+```
+
+
+```{r}
+# Penalized Models
+glmnGrid=expand.grid(.alpha=c(0,0.1,0.2,0.3,0.4,0.5,0.6),
+                     .lambda=seq(0.01,0.2,length=20))
+set.seed(1)
+ldaFit <- train(x = dfTrain,
+                y = qtTrain,
+                method = "glmnet",
+                tuneGrid = glmnGrid,
+                preProc = c("center","scale"),
+                metric = "Kappa",
+                trControl = ctrl)
+
+confusionMatrix(data=ldaFit,reference=qtTest)
+
+```
+
+
+```{r}
+# Nearest Shrunk Centroid
+library(pamr)
+
+nscGrid<-data.frame(.threshold=0:25)
+nscFit <- train(x=dfTrain, 
+                y=qtTrain,
+                method='pam',
+                #preProc=c('center','scale'),
+                tuneGrid=nscGrid,
+                metric = 'Kappa',
+                trControl = ctrl
+                )
+
+confusionMatrix(data=nscFit,reference=qtTest)
+
+
+```
+
+
