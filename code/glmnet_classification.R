@@ -20,9 +20,6 @@ library(glmnet)
 # Now build classification models treating 3, 4, 5, as "bad"; 6, 7, 8 as "good"
 ########################
 
-# Read in df_pp again (we don't want quality as a factor any longer)
-df_pp <- as.data.frame(wine_tibble_preproc)
-
 df_pp$goodbad[df_pp$quality < 5.5] <- "bad"
 df_pp$goodbad[df_pp$quality > 5.5] <- "good"
 
