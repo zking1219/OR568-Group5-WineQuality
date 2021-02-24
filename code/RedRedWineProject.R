@@ -1,3 +1,13 @@
+#Abstract
+# Took Zack's preproc information and ran two randomForest Models
+#Accuracy     Kappa 
+#0.8463950 0.6899165 
+
+
+
+
+
+
 library(AppliedPredictiveModeling)
 library(readr)
 library(caret)
