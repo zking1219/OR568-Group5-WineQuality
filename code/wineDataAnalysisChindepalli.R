@@ -18,7 +18,7 @@ library(glmnet)
 library (ggplot2)
 
 #Load Data----------------------------------------------------------------------------------------------------------------
-    mid <- read.csv("data/winequality_center_scale_boxcox.csv", header = TRUE)
+    mid <- read.csv("../data/winequality_center_scale_boxcox.csv", header = TRUE)
     wineQuality <- as.data.frame(mid)
  
 #Chindepalli2--Data Partition - Linear Regression----------------------------------------------------------------------- ------------------------------------------------------------------------------------------------------------------------
