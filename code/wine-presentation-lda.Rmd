@@ -18,22 +18,7 @@ library(MASS)
 
 
 # Importing dataset
-setwd("C:/Users/ajkur/OneDrive/OR568/Project")
-wine_tibble <- read_csv('winequality-red.csv')
-df <- as.data.frame(wine_tibble)
-
-# Preprocessing data and generating a csv file 
-library(caret)
-wine_preproc <- preProcess(df[,c(-12)], method = c("BoxCox", "center", "scale"))
-predictors_preproc <- predict(wine_preproc, df[,c(-12)])
-
-# join the predictors back to the response
-array_preproc <- cbind(quality = df$quality, predictors_preproc)
-df_preproc <- as.data.frame(array_preproc)
-
-write.csv(df_preproc, 
-          "winequality_center_scale_boxcox.csv",
-          row.names = FALSE)
+df_preproc <- read_csv("../data/winequality_center_scale_boxcox.csv")
 
 # Splitting dataset into training and test sets 
 trainingRows <- createDataPartition(y = df_preproc$quality, p = .8,list= FALSE)
