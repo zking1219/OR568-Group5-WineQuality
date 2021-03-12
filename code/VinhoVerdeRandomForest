@@ -1,0 +1,106 @@
+library(AppliedPredictiveModeling)
+library(readr)
+library(caret)
+library(PerformanceAnalytics)
+library(tidyverse)
+library(randomForest)
+library(rpart)
+library(readr)
+library(curl)
+
+
+
+
+wine_tibble_preproc <- read_csv("../winequality_center_scale_boxcox.csv")
+
+
+df_pp <- as.data.frame(wine_tibble_preproc)
+df_pp$goodbad[df_pp$quality < 5.5] <- "bad"
+df_pp$goodbad[df_pp$quality > 5.5] <- "good"
+
+
+# remove goodbad
+df_pp$quality <- df_pp$goodbad
+df_pp <- df_pp[,1:12]
+df_pp$quality <- as.factor(df_pp$quality)
+
+
+#Random Forest Classification Good/Bad
+
+
+set.seed(100)
+trainingRows <- createDataPartition(y = df_pp$quality, p = .8, list=FALSE)
+
+chart.Correlation(df_pp[-1], col = df_pp$quality)
+library(mlbench)
+library(caret)
+library(e1071)
+
+#Better Results with 15 branches and higher tunelength
+control <- trainControl(method="repeatedcv", number=10, repeats=3, search="grid")
+
+
+
+rfModel1 = randomForest( df_pp[trainingRows,]$quality ~ ., data = df_pp[trainingRows,]
+                         , ntree=500
+                         ,TuneLength =7
+                         ,trcontrol= control) 
+rfModel1
+
+
+# predict quality:
+rf_yHat = predict(rfModel1,df_pp[-trainingRows,])
+
+## performance evaluation
+rfPR = postResample(pred=rf_yHat, obs=df_pp[-trainingRows,]$quality)
+confusionMatrix(rf_yHat,df_pp[-trainingRows,]$quality,"good")
+#Accuracy     Kappa 
+#0.837        0.6711 
+
+plot(rfModel1, main = "Random Forest Model")
+
+
+# Manual Search
+control <- trainControl(method = 'repeatedcv',
+                        number = 10,
+                        repeats = 3,
+                        search = 'grid')
+
+
+
+modellist <- list()
+for (ntree in c( 500, 1000, 1500, 2000, 2500)) {
+  set.seed(100)
+  fit <- train(quality~.,df_pp[trainingRows,],
+               method = 'rf', #, TuneLength = 7,
+               ntree = ntree,
+               #metric= 'Accuracy',
+               trcontrol = control)
+  
+  
+  key <- toString(ntree)
+  modellist[[key]] <- fit
+}
+# compare results
+results <- resamples(modellist)
+summary(results)
+dotplot(results, main = "Random Forest Tree Tuning")
+varImpPlot(rfModel1,cex= 1.2,
+           main = "Variable Importance Plot") 
+
+
+# 
+
+RFModel <- train(quality~.,df_pp[trainingRows,],
+                 method = 'rf', TuneLength = 7,
+                 ntree = 500,
+                 metric= "Accuracy",
+                 trcontrol = control)
+
+
+RFModel$results
+
+
+pred <- predict(RFModel,df_pp[-trainingRows,])
+
+confusionMatrix(pred, df_pp[-trainingRows,]$quality,"good")
