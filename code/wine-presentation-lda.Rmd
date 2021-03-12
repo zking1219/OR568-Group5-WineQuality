@@ -1,0 +1,92 @@
+---
+title: "wine-presentation-LDA"
+author: "Ajay Kurian"
+date: "2/26/2021"
+output: html_document
+---
+
+```{r}
+# Importing libraries 
+library(AppliedPredictiveModeling)
+library(readr)
+library(caret)
+library(Hmisc)
+library(GGally)
+library(reshape2)
+library(caret)
+library(MASS)
+
+
+# Importing dataset
+setwd("C:/Users/ajkur/OneDrive/OR568/Project")
+wine_tibble <- read_csv('winequality-red.csv')
+df <- as.data.frame(wine_tibble)
+
+# Preprocessing data and generating a csv file 
+library(caret)
+wine_preproc <- preProcess(df[,c(-12)], method = c("BoxCox", "center", "scale"))
+predictors_preproc <- predict(wine_preproc, df[,c(-12)])
+
+# join the predictors back to the response
+array_preproc <- cbind(quality = df$quality, predictors_preproc)
+df_preproc <- as.data.frame(array_preproc)
+
+write.csv(df_preproc, 
+          "winequality_center_scale_boxcox.csv",
+          row.names = FALSE)
+
+# Splitting dataset into training and test sets 
+trainingRows <- createDataPartition(y = df_preproc$quality, p = .8,list= FALSE)
+trainWine   <- df_preproc[trainingRows, ]
+trainWine$quality=as.factor(trainWine$quality)
+
+testWine <- df_preproc[-trainingRows, ]
+testWine$quality=as.factor(testWine$quality)
+
+
+```
+
+```{r}
+# LDA 
+set.seed(100)
+wine.lda <- lda(quality ~., 
+                data = trainWine,
+                CV=FALSE)
+plot(wine.lda)
+
+wine.lda.pred <- predict(object = wine.lda,
+                         newdata=testWine)
+
+
+confusionMatrix(testWine$quality, wine.lda.pred$class)
+
+```
+
+```{r}
+# Linear Discriminant Analysis - Kappa 
+ctrl=trainControl(method='cv',number=10)
+
+
+set.seed(100)
+ldaFit <-train(quality~.,
+               data=trainWine,
+               method='lda',
+               metric='Kappa',
+               trControl=ctrl)
+
+ldaPred <-predict(ldaFit,newdata=testWine)
+
+ldaCM <- confusionMatrix(ldaPred, reference=testWine$quality)
+
+
+ldaList <-list(classifier=ldaFit, confusionMatrix=ldaCM)
+ldaList
+
+plot(varImp(ldaFit))
+
+```
+```{r}
+
+
+```
+
