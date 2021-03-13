@@ -11,7 +11,7 @@ library(curl)
 
 
 
-wine_tibble_preproc <- read_csv("../winequality_center_scale_boxcox.csv")
+wine_tibble_preproc <- read_csv("../data/winequality_center_scale_boxcox.csv")
 
 
 df_pp <- as.data.frame(wine_tibble_preproc)
